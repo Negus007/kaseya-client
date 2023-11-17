@@ -2,16 +2,20 @@ import "./App.css";
 import { useEffect, useState } from "react";
 import { Octokit } from "@octokit/rest";
 import axios from "axios";
-const octokit = new Octokit({
-  auth: "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",
-});
+const octokit = new Octokit();
 
 function App() {
   const [owner, setOwner] = useState("");
   const [repo, setRepo] = useState("");
   const [contributors, setContributors] = useState([]);
-  const [avgPulls, setAvgPulls] = useState(0);
-  const [avgCommits, setAvgCommits] = useState([]);
+  const [totalPulls, setTotalPulls] = useState(0);
+  const [totalCommits, setTotalCommits] = useState(0);
+  const [totalComments, setTotalComments] = useState(0);
+  const [current, setCurrent] = useState("");
+  const [contributorPulls, setContributorPulls] = useState(0);
+  const [contributorCommits, setContributorCommits] = useState(0);
+  const [contributorComments, setContributorComments] = useState(0);
+
   const handleOwner = (e) => {
     setOwner(e.target.value);
   };
@@ -33,37 +37,52 @@ function App() {
       repo,
       state: "all",
     });
+    const userPulls = pulls.data.filter((pull) => pull.user.login === current);
+    setContributorPulls(userPulls.length);
     {
       /*const commits = await axios.get(
       `https://api.github.com/repos/${owner}/${repo}/commits`,
     );*/
     }
+    const commits = await octokit.paginate(octokit.rest.repos.listCommits, {
+      owner,
+      repo,
+    });
+    const filterNull = commits.filter((commit) => commit.author !== null);
+
+    const userCommits = filterNull.filter(
+      (commit) => commit.author.login === current,
+    );
+    console.log(userCommits);
+    setContributorCommits(userCommits.length / 2);
+
+    setTotalCommits(commits.length);
 
     const comments = await axios.get(
       `https://api.github.com/repos/${owner}/${repo}/pulls/comments`,
     );
+    const commentPulls = comments.data.filter(
+      (comment) => comment.user.login === current,
+    );
+    setContributorComments(commentPulls.length);
+
+    console.log(comments.data);
+    setTotalComments(comments.data.length);
     const comments2 = await octokit.repos.listCommits({
       owner,
       repo,
     });
 
-    setAvgPulls(pulls.data.length);
+    setTotalPulls(pulls.data.length);
 
     setContributors(contributions.data);
+    setCurrent(contributions.data[0].login);
   };
-  useEffect(() => {
-    if (contributors) {
-      const getCommits = async () => {
-        const commits = await octokit.repos.listCommits({
-          owner,
-          repo,
-        });
-
-        setAvgCommits(commits.data.length / contributors.length);
-      };
-      getCommits();
-    }
-  }, [contributors]);
+  const makeAvg = () => {
+    setTotalComments(totalComments / contributors.length);
+    setTotalCommits(totalCommits / contributors.length);
+    setTotalPulls(totalPulls / contributors.length);
+  };
 
   return (
     <>
@@ -76,10 +95,17 @@ function App() {
       <label htmlFor="repo">Repo:</label>
       <input onChange={handleRepo} id="repo" />
       <button onClick={getAndListIssues}>List Issues</button>
-      <h2>Avg Pull</h2>
-      <p>{avgPulls}</p>
-      <h2>Avg Commits</h2>
-      <p>{avgCommits}</p>
+      <button onClick={makeAvg}>Avg</button>
+      <h2>Total Pull</h2>
+      <p>{totalPulls}</p>
+      <h2>Total Commits</h2>
+      <p>{totalCommits}</p>
+      <h2>Total Comments</h2>
+      <p>{totalComments}</p>
+      <h2>{current}</h2>
+      <p>{contributorPulls}</p>
+      <p> {contributorCommits}</p>
+      <p> {contributorComments}</p>
       <ul>
         {contributors.map((contributor) => {
           return (
