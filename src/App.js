@@ -2,6 +2,7 @@ import "./App.css";
 import { useEffect, useState } from "react";
 import { Octokit } from "@octokit/rest";
 import axios from "axios";
+import Individual from "./IndiviualPullRequest/IndividualPull";
 const octokit = new Octokit({
   auth: "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",
 });
@@ -95,6 +96,7 @@ function App() {
           );
         })}
       </ul>
+      <Individual repo={repo} contributors={contributors} owner={owner}/>
     </>
   );
 }
